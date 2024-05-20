@@ -26,7 +26,7 @@ class Analyze:
         :param list1: Відсіюємо залишок коду кододавця.
         :param list2: Відсіюємо залишок коду гравця.
         """
-        self.a = ""
+        self.result = ""
         self.list1 = []
         self.list2 = []
 
@@ -34,13 +34,13 @@ class Analyze:
         """
         Вираховуємо співпадіння.
         """
-        self.a = ""
+        self.result = ""
         self.list1 = []
         self.list2 = []
 
         for i in range(4):
             if secret_code[i] == guess[i]:
-                self.a += "+"
+                self.result += "+"
             else:
                 self.list1.append(secret_code[i])
                 self.list2.append(guess[i])
@@ -49,14 +49,14 @@ class Analyze:
             for j in self.list2:
                 if i == j:
                     self.list2.remove(i)
-                    self.a += "-"
+                    self.result += "-"
                     break
 
-    def result(self):
+    def print_result(self):
         """
         Виводимо результат.
         """
-        return self.a
+        return self.result
 
 
 class Statistic:
@@ -68,15 +68,6 @@ class Statistic:
         :param total_lose: Загальна кількість виграшів.
         """
         self.total_wins, self.total_lose = self.load_from_file()
-        if os.path.isfile('Result.txt'):
-            try:
-                with open('Result.txt', 'r', encoding='utf-8') as file:
-                    file.read()
-                    return
-            except FileNotFoundError:
-                self.save_to_file()
-        else:
-            self.save_to_file()
 
     def add_win(self):
         """
@@ -103,14 +94,22 @@ class Statistic:
         """
         Завантажуємо результати з файлу.
         """
-        try:
-            with open('Result.txt', 'r', encoding='utf-8') as file:
-                data = file.read().strip().split(', ')
-                self.total_wins = int(data[0].split(': ')[1])
-                self.total_lose = int(data[1].split(': ')[1])
+        if os.path.isfile('Result.txt'):
+            try:
+                with open('Result.txt', 'r', encoding='utf-8') as file:
+                    file.read()
+                try:
+                    with open('Result.txt', 'r', encoding='utf-8') as file:
+                        data = file.read().strip().split(', ')
+                        self.total_wins = int(data[0].split(': ')[1])
+                        self.total_lose = int(data[1].split(': ')[1])
+                except FileNotFoundError:
+                    return 0, 0
                 return self.total_wins, self.total_lose
-        except FileNotFoundError:
-            return 0, 0
+            except FileNotFoundError:
+                self.save_to_file()
+        else:
+            self.save_to_file()
 
     def print_result(self):
         """
@@ -131,46 +130,85 @@ class Game:
         :param secret_code: Генеруємо секретний код.
         :param analyze: Аналізуємо результати.
         :param win: Значення яке потрібне для виграшу.
-        :param result: Записуємо результати гри.
+        :param stat: Взаємодіємо з статистикою.
+        :param rules: Підтягуємо правила гри.
+        :param user_input: Взаємодія користувача з головним меню.
         """
         self.secret_code = GenerateRandomNumber()
         self.analyze = Analyze()
         self.win = "++++"
-        self.result = GameResults(self)
+        self.rules = Rules
+        self.user_input = ""
+        self.stat = Statistic()
 
-    def start_new_game(self):
+    def start_game(self):
         """
-        Створюємо нову гру.
+        Запуск гри.
         """
-        self.secret_code = GenerateRandomNumber()
-        self.play_game()
+        print("\nПривіт!\n")
+        print("Раді вітати вас у грі Дешифратор!\n")
+        self.main_menu()
+
+    def main_menu(self):
+        """
+        Головне меню.
+        """
+        print("\nГоловне меню:\n Грати\n Правила\n Статистика\n Вихід\n")
+        self.user_input = input("Ваш вибір: ")
+
+        if self.user_input == "Грати":
+            self.play_game()
+
+        elif self.user_input == "Правила":
+            print("\nПравила гри:")
+            self.rules.rules()
+            self.main_menu()
+
+        elif self.user_input == "Статистика":
+            self.stat.print_result()
+            self.main_menu()
+
+        elif self.user_input == "Вихід":
+            exit()
+
+        else:
+            print("Неправильний вибір!")
+            self.main_menu()
+
+    @staticmethod
+    def difficulty():
+        """
+        Види складності гри.
+        """
+        return {
+            "Легко" : (8, 2),
+            "Середній" : (6, 2),
+            "Тяжко" : (4, 1)
+        }
+
+    def choose_difficulty(self):
+        """
+        Вибір складності гри.
+        """
+        difficulties = self.difficulty()
+        print("\nОберіть складність: ")
+        for level in difficulties:
+            print(f"{level} (спроб: {difficulties[level][0]}, підказок: {difficulties[level][1]})")
+
+        while True:
+            choice = input("\nОберіть складність: ")
+            if choice in difficulties:
+                return difficulties[choice]
+            else:
+                print("Неправильний вибір! Будь-ласка оберіть складність.")
 
     def play_game(self):
         """
-        Починаємо нову гру.
+        Генерація нової гри.
         """
-        pass
-
-    def easy_game(self):
-        """
-        Гра на легкій складності.
-        """
-        self.game(8, 2)
-        self.play_game()
-
-    def medium_game(self):
-        """
-        Гра на середній складності.
-        """
-        self.game(6, 2)
-        self.play_game()
-
-    def hard_game(self):
-        """
-        Гра на тяжкій складності.
-        """
-        self.game(4, 1)
-        self.play_game()
+        self.secret_code = GenerateRandomNumber()
+        attempts, hints = self.choose_difficulty()
+        self.game(attempts, hints)
 
     def game(self, attempts, hints):
         """
@@ -182,11 +220,12 @@ class Game:
             if len(guess) == 4 and all(x.isdigit() and 1 <= int(x) <= 6 for x in guess):
                 guess_numbers = [int(x) for x in guess]
                 self.analyze.count_result(self.secret_code.return_number(), guess_numbers)
-                print(f"\nРезультат: {self.analyze.result()}")
+                print(f"\nРезультат: {self.analyze.print_result()}")
                 attempts -= 1
-                if self.analyze.result() == self.win:
-                    self.result.add_result(True)
-                    return
+                if self.analyze.print_result() == self.win:
+                    print("Вітаємо! Ви перемогли!")
+                    self.stat.add_win()
+                    self.ask_replay()
                 else:
                     print(f"\nУ вас залишилось спроб: {attempts}")
                     while hints > 0:
@@ -202,28 +241,8 @@ class Game:
                             print("Неправильний вибір! Будь-ласка вкажіть Так або Ні.")
             else:
                 print("Неправильний формат коду! Будь-ласка ведіть 4 цифри в діапазоні від 1 до 6")
-        self.result.add_result(False)
-        return
-
-
-class GameResults:
-    def __init__(self, games):
-        """
-        Додаємо результати гри в статистику.
-
-        :param games: Приймаємо об'єкт гри.
-        """
-        self.game = games
-
-    def add_result(self, win):
-        """
-        Додаємо виграши та програші.
-        """
-        if win:
-            stat.add_win()
-        else:
-            stat.add_lose()
-            print(f"\nВи використали всі спроби! Таємний код був: {self.game.secret_code.return_number()}")
+        print(f"\nВи використали всі спроби! Таємний код був: {self.secret_code.return_number()}")
+        self.stat.add_lose()
         self.ask_replay()
 
     def ask_replay(self):
@@ -232,65 +251,15 @@ class GameResults:
         """
         user_again = input("\nХочете зіграти ще раз?(Так або Ні) ")
         if user_again == "Так":
-            self.game.start_new_game()
+            self.play_game()
         elif user_again == "Ні":
             print("\nДякуємо за гру! Повертаємо вас у головне меню.")
-            play_game()
+            self.main_menu()
         else:
             print("\nНеправильний вибір!")
             self.ask_replay()
 
 
-def play_game():
-    """
-    Функція управління грою.
-
-    :param stat: Підтягуємо статистику.
-    :param rules: Підтягуємо правила гри.
-    """
-    global stat
-    rules = Rules
-    print("\nПривіт!\n")
-    print("Раді вітати вас у грі Дешифратор!\n")
-    print("Головне меню:\n Грати\n Правила\n Статистика\n Вихід\n")
-    user_input = input("Ваш вибір: ")
-
-    if user_input == "Грати":
-        while True:
-            print("\nСкладність: \nЛегко(У вас 8 спроб та 2 підказки) \nСередній(У вас 6 спроб та 2 підказки) \nТяжко(У вас 4 спроби і 1 підказка)")
-            difficult = ""
-            while not (difficult == "Легко" or difficult == "Середній" or difficult == "Тяжко"):
-                difficult = input("\nВиберіть складність: ")
-                game = Game()
-                if difficult == "Легко":
-                    game.easy_game()
-
-                elif difficult == "Середній":
-                    game.medium_game()
-
-                elif difficult == "Тяжко":
-                    game.hard_game()
-
-                else:
-                    print("Неправильний вибір! Будь-ласка виберіть складність.")
-
-    elif user_input == "Правила":
-        print("\nПравила гри:")
-        rules.rules()
-        play_game()
-
-    elif user_input == "Статистика":
-        stat.print_result()
-        play_game()
-
-    elif user_input == "Вихід":
-        exit()
-
-    else:
-        print("Неправильний вибір!")
-        play_game()
-
-
 if __name__ == "__main__":
-    stat = Statistic()
-    play_game()
+    game = Game()
+    game.start_game()

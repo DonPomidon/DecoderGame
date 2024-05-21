@@ -22,33 +22,33 @@ class Analyze:
         """
         Аналізатор кодів кододавця і гравця.
 
-        :param a: Результат.
-        :param list1: Відсіюємо залишок коду кододавця.
-        :param list2: Відсіюємо залишок коду гравця.
+        :param result: Результат перевірки схожості.
+        :param remain_code: Відсіюємо залишок коду кододавця.
+        :param remain_guess: Відсіюємо залишок коду гравця.
         """
         self.result = ""
-        self.list1 = []
-        self.list2 = []
+        self.remain_code = []
+        self.remain_guess = []
 
     def count_result(self, secret_code, guess):
         """
         Вираховуємо співпадіння.
         """
         self.result = ""
-        self.list1 = []
-        self.list2 = []
+        self.remain_code = []
+        self.remain_guess = []
 
         for i in range(4):
             if secret_code[i] == guess[i]:
                 self.result += "+"
             else:
-                self.list1.append(secret_code[i])
-                self.list2.append(guess[i])
+                self.remain_code.append(secret_code[i])
+                self.remain_guess.append(guess[i])
 
-        for i in self.list1:
-            for j in self.list2:
+        for i in self.remain_code:
+            for j in self.remain_guess:
                 if i == j:
-                    self.list2.remove(i)
+                    self.remain_guess.remove(i)
                     self.result += "-"
                     break
 
@@ -95,19 +95,16 @@ class Statistic:
         Завантажуємо результати з файлу.
         """
         if os.path.isfile('Result.txt'):
+            with open('Result.txt', 'r', encoding='utf-8') as file:
+                file.read()
             try:
                 with open('Result.txt', 'r', encoding='utf-8') as file:
-                    file.read()
-                try:
-                    with open('Result.txt', 'r', encoding='utf-8') as file:
-                        data = file.read().strip().split(', ')
-                        self.total_wins = int(data[0].split(': ')[1])
-                        self.total_lose = int(data[1].split(': ')[1])
-                except FileNotFoundError:
-                    return 0, 0
-                return self.total_wins, self.total_lose
+                    data = file.read().strip().split(', ')
+                    self.total_wins = int(data[0].split(': ')[1])
+                    self.total_lose = int(data[1].split(': ')[1])
             except FileNotFoundError:
-                self.save_to_file()
+                return 0, 0
+            return self.total_wins, self.total_lose
         else:
             self.save_to_file()
 
@@ -119,6 +116,7 @@ class Statistic:
             with open('Result.txt', 'r', encoding='utf-8') as file:
                 print(file.read())
         except FileNotFoundError:
+            print("Упс! Схоже що ви поки не грали в нашу гру. Створюємо нову статистику.")
             self.save_to_file()
 
 
@@ -158,6 +156,7 @@ class Game:
 
         if self.user_input == "Грати":
             self.play_game()
+            self.ask_replay()
 
         elif self.user_input == "Правила":
             print("\nПравила гри:")
@@ -204,11 +203,15 @@ class Game:
 
     def play_game(self):
         """
-        Генерація нової гри.
+        Генерація нової гри та запис результату гри.
         """
         self.secret_code = GenerateRandomNumber()
         attempts, hints = self.choose_difficulty()
         self.game(attempts, hints)
+        if self.game == True:
+            self.stat.add_win()
+        else:
+            self.stat.add_lose()
 
     def game(self, attempts, hints):
         """
@@ -223,27 +226,37 @@ class Game:
                 print(f"\nРезультат: {self.analyze.print_result()}")
                 attempts -= 1
                 if self.analyze.print_result() == self.win:
-                    print("Вітаємо! Ви перемогли!")
-                    self.stat.add_win()
-                    self.ask_replay()
+                    print("\nВітаємо! Ви перемогли!")
+                    return True
                 else:
                     print(f"\nУ вас залишилось спроб: {attempts}")
-                    while hints > 0:
-                        hint = input("\nХочете використати підказку?(Так або Ні) ")
-                        if hint == "Так":
-                            hints -= 1
-                            print(f"\nЦифра в таємному коді: {random.choice(self.secret_code.return_number())}")
-                            break
-                        elif hint == "Ні":
-                            print(f"\nУ вас залишилось підказок: {hints}")
-                            break
-                        else:
-                            print("Неправильний вибір! Будь-ласка вкажіть Так або Ні.")
+                    if hints > 0:
+                        hints = self.give_hints(hints)
+                    else:
+                        print("\nУ вас не залишилось підказок.")
             else:
                 print("Неправильний формат коду! Будь-ласка ведіть 4 цифри в діапазоні від 1 до 6")
         print(f"\nВи використали всі спроби! Таємний код був: {self.secret_code.return_number()}")
-        self.stat.add_lose()
-        self.ask_replay()
+        return False
+
+    def give_hints(self, hints):
+        """
+        Використання підказок.
+        """
+        while hints > 0:
+            hint = input("\nХочете використати підказку?(Так або Ні) ")
+            if hint == "Так":
+                hints -= 1
+                print(f"\nЦифра в таємному коді: {random.choice(self.secret_code.return_number())}")
+                break
+            elif hint == "Ні":
+                print(f"\nУ вас залишилось підказок: {hints}")
+                break
+            else:
+                print("Неправильний вибір! Будь-ласка вкажіть Так або Ні.")
+        if hints <= 0:
+            print("\nВи використали всі підказки.")
+        return hints
 
     def ask_replay(self):
         """

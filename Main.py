@@ -96,17 +96,12 @@ class Statistic:
         """
         if os.path.isfile('Result.txt'):
             with open('Result.txt', 'r', encoding='utf-8') as file:
-                file.read()
-            try:
-                with open('Result.txt', 'r', encoding='utf-8') as file:
-                    data = file.read().strip().split(', ')
-                    self.total_wins = int(data[0].split(': ')[1])
-                    self.total_lose = int(data[1].split(': ')[1])
-            except FileNotFoundError:
-                return 0, 0
+                data = file.read().strip().split(', ')
+                self.total_wins = int(data[0].split(': ')[1])
+                self.total_lose = int(data[1].split(': ')[1])
             return self.total_wins, self.total_lose
         else:
-            self.save_to_file()
+            return 0, 0
 
     def print_result(self):
         """
@@ -207,10 +202,12 @@ class Game:
         """
         self.secret_code = GenerateRandomNumber()
         attempts, hints = self.choose_difficulty()
-        self.game(attempts, hints)
-        if self.game == True:
+        game_res = self.game(attempts, hints)
+        if game_res:
+            print("Ви виграли!")
             self.stat.add_win()
         else:
+            print("Ви програли!")
             self.stat.add_lose()
 
     def game(self, attempts, hints):
@@ -226,7 +223,6 @@ class Game:
                 print(f"\nРезультат: {self.analyze.print_result()}")
                 attempts -= 1
                 if self.analyze.print_result() == self.win:
-                    print("\nВітаємо! Ви перемогли!")
                     return True
                 else:
                     print(f"\nУ вас залишилось спроб: {attempts}")

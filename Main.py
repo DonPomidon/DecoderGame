@@ -83,6 +83,15 @@ class Statistic:
         self.total_lose += 1
         self.save_to_file()
 
+    def add_stat(self, game_res):
+        """
+        Зараховуємо результат в статистику.
+        """
+        if game_res:
+            self.add_win()
+        else:
+            self.add_lose()
+
     def save_to_file(self):
         """
         Зберігаємо результати у файл.
@@ -127,6 +136,7 @@ class Game:
         :param rules: Підтягуємо правила гри.
         :param user_input: Взаємодія користувача з головним меню.
         """
+        self.game_res = None
         self.secret_code = GenerateRandomNumber()
         self.analyze = Analyze()
         self.win = "++++"
@@ -203,12 +213,18 @@ class Game:
         self.secret_code = GenerateRandomNumber()
         attempts, hints = self.choose_difficulty()
         game_res = self.game(attempts, hints)
+        self.print_result(game_res)
+        self.stat.add_stat(game_res)
+
+    @staticmethod
+    def print_result(game_res):
+        """
+        Повідомлення про результат гри.
+        """
         if game_res:
             print("Ви виграли!")
-            self.stat.add_win()
         else:
             print("Ви програли!")
-            self.stat.add_lose()
 
     def game(self, attempts, hints):
         """
@@ -216,7 +232,7 @@ class Game:
         """
         print("\nПочинаємо гру!")
         while attempts > 0:
-            guess = input("Виберіть чотири числа від 1 до 6: ")
+            guess = input("\nВиберіть чотири числа від 1 до 6: ")
             if len(guess) == 4 and all(x.isdigit() and 1 <= int(x) <= 6 for x in guess):
                 guess_numbers = [int(x) for x in guess]
                 self.analyze.count_result(self.secret_code.return_number(), guess_numbers)

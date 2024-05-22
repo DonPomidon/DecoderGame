@@ -132,11 +132,10 @@ class Game:
         :param secret_code: Генеруємо секретний код.
         :param analyze: Аналізуємо результати.
         :param win: Значення яке потрібне для виграшу.
-        :param stat: Взаємодіємо з статистикою.
         :param rules: Підтягуємо правила гри.
         :param user_input: Взаємодія користувача з головним меню.
+        :param stat: Підтягуємо статистику.
         """
-        self.game_res = None
         self.secret_code = GenerateRandomNumber()
         self.analyze = Analyze()
         self.win = "++++"
